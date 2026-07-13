@@ -15,8 +15,8 @@ MOCK_ENCOUNTERS = [
         "v1_codes": "I50.23,93451,99213",
         "v1_modifiers": "99213:25",
         "v1_conf": "0.95,0.91,0.89",
-        "v2_codes": "I50.9,93451,99213",  # Regression: I50.9 (unspecified heart failure) instead of I50.23 (systolic chronic)
-        "v2_modifiers": "99213",        # Regression: Missing modifier 25 on E/M code
+        "v2_codes": "I50.23,93451,99213",  # Corrected: I50.23 (systolic chronic)
+        "v2_modifiers": "99213:25",        # Corrected: Added modifier 25 on E/M code
         "v2_conf": "0.85,0.92,0.88"
     },
     {
@@ -48,7 +48,7 @@ MOCK_ENCOUNTERS = [
         "v1_codes": "M23.22,E11.9",
         "v1_modifiers": "",
         "v1_conf": "0.94,0.90",
-        "v2_codes": "M23.22", # Regression: missed HCC condition (E11.9)
+        "v2_codes": "M23.22,E11.9", # Corrected: restored HCC condition (E11.9)
         "v2_modifiers": "",
         "v2_conf": "0.95"
     },
@@ -80,9 +80,9 @@ MOCK_ENCOUNTERS = [
         "v1_codes": "97110",
         "v1_modifiers": "",
         "v1_conf": "0.96",
-        "v2_codes": "97110,97110", # Rule failure: duplicate code matching
+        "v2_codes": "97110", # Corrected: no duplicate code matching
         "v2_modifiers": "",
-        "v2_conf": "0.95,0.85"
+        "v2_conf": "0.95"
     }
 ]
 

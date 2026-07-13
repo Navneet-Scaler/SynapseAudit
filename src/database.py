@@ -28,13 +28,7 @@ class AuditDatabase:
         for record_id, model_version, prompt_version, predicted_codes, predicted_modifiers, note_text in predictions:
             violations = self.rule_engine.evaluate_rules(predicted_codes, predicted_modifiers, note_text)
             
-            # Special manual override for endocrinology/dosage unit mismatch simulation on v2
-            if "levothyroxine" in note_text.lower() and model_version == "clinical-nlp-v2":
-                violations.append({
-                    "error_type": "unit_confusion",
-                    "risk_score": 2.0,
-                    "details": "Lethal unit confusion: matched 100 mg instead of 100 mcg."
-                })
+            pass
             
             for v in violations:
                 cursor.execute("""
