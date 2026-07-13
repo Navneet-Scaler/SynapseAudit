@@ -10,6 +10,7 @@ from src.dataset_loader import DatasetLoader
 from src.regression import RegressionEngine
 from src.database import AuditDatabase
 from src.parser import ClinicalParser
+from src.rules import RuleEngine
 
 # Page config
 st.set_page_config(page_title="SynapseAudit QA Engine", layout="wide", initial_sidebar_state="expanded")
@@ -52,7 +53,14 @@ predictions = loader.load_predictions()
 
 # Sidebar
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Model Regression Overview", "Explainable Audit Ledger", "Specialty & Compliance Analytics", "Release Gate Status"])
+page = st.sidebar.radio("Go to", [
+    "Model Regression Overview", 
+    "Explainable Audit Ledger", 
+    "Specialty & Compliance Analytics", 
+    "Model Compare & Prompt Diff",
+    "Synthetic Testing Lab",
+    "Release Gate Status"
+])
 
 if page == "Model Regression Overview":
     st.header("📈 Model Regression Overview")
@@ -173,9 +181,106 @@ elif page == "Specialty & Compliance Analytics":
                          title="Specialty Compliance Risk Distribution",
                          color_discrete_sequence=["#00c6ff", "#00f2fe"],
                          template="plotly_dark")
-        st.plotly_chart(fig_box, use_container_width=True)
+         st.plotly_chart(fig_box, use_container_width=True)
     else:
-        st.info("No compliance violations tracked in database.")
+         st.info("No compliance violations tracked in database.")
+
+elif page == "Model Compare & Prompt Diff":
+    st.header("🔀 Model Compare & Prompt Diff")
+    st.markdown("Inspect structural prompt updates and trace NLP model logic diffs.")
+    
+    col_diff1, col_diff2 = st.columns(2)
+    with col_diff1:
+        st.markdown("### 🔹 Baseline System Prompt (v1)")
+        st.code(
+            "System Prompt: clinical-nlp-v1\n"
+            "==============================\n"
+            "You are an expert clinical coder. Extract CPT and ICD-10 codes from notes.\n"
+            "CRITICAL: If a procedure (e.g. cardiac cath 93451) and E/M visit (e.g. 99213) occur on same day,\n"
+            "ensure modifier 25 is attached to the E/M code (format: 99213:25).",
+            language="markdown"
+        )
+    with col_diff2:
+        st.markdown("### 🔸 Candidate System Prompt (v2)")
+        st.code(
+            "System Prompt: clinical-nlp-v2\n"
+            "==============================\n"
+            "You are a clinical assistant. Extract diagnostic codes and CPT codes from notes.\n"
+            "Ensure E/M levels are selected correctly. Ensure all details are matched. Do not hallucinate.",
+            language="markdown"
+        )
+    
+    st.info("💡 **Prompt Optimization Review**: The candidate prompt (v2) omitted the explicit rule requiring Modifier 25 attachments for office visits billed alongside procedural evaluations, causing a regression in Cardiology and Orthopedics claim accuracy.")
+
+elif page == "Synthetic Testing Lab":
+    st.header("🔬 Synthetic Edge Case Testing Lab")
+    st.markdown("Input custom EHR notes to validate NLP extraction and rule check results in real-time.")
+    
+    template = st.selectbox("Select Sample Note Template", [
+        "Select custom text...",
+        "Cardiology: Catheterization + E/M on Same Day",
+        "Endocrinology: Hypothyroidism Levothyroxine mcg Dosage",
+        "Orthopedics: Duplicate PT Code Billing"
+    ])
+    
+    default_text = ""
+    if template == "Cardiology: Catheterization + E/M on Same Day":
+        default_text = (
+            "Patient seen today for worsening systolic heart failure. "
+            "Underwent diagnostic cardiac catheterization and separate cardiovascular evaluation. "
+            "Codes matched: 93451 and 99213."
+        )
+    elif template == "Endocrinology: Hypothyroidism Levothyroxine mcg Dosage":
+        default_text = (
+            "Consultation for thyroid deficiency. Patient started on levothyroxine 100 mcg daily."
+        )
+    elif template == "Orthopedics: Duplicate PT Code Billing":
+        default_text = (
+            "Post-op rehabilitation visit. Duplicate physical therapy codes 97110 and 97110 recorded."
+        )
+        
+    custom_note = st.text_area("Clinical Note Text", value=default_text, height=150)
+    
+    col_input1, col_input2 = st.columns(2)
+    with col_input1:
+        pred_codes = st.text_input("Simulated Predicted Codes (comma-separated)", value="93451,99213")
+    with col_input2:
+        pred_mods = st.text_input("Simulated Predicted Modifiers (e.g. 99213:25)", value="99213")
+        
+    if st.button("Run Deterministic Audit Checks", type="primary"):
+        st.subheader("Analysis & Highlighting Spans")
+        
+        # Parse entities
+        parser = ClinicalParser()
+        spans = parser.parse_note(custom_note)
+        spans = sorted(spans, key=lambda x: x["start"], reverse=True)
+        highlighted = custom_note
+        for s in spans:
+            start, end, code = s["start"], s["end"], s["code"]
+            highlighted = (
+                highlighted[:start] + 
+                f'<span class="highlight-span">{highlighted[start:end]} [Code: {code}]</span>' + 
+                highlighted[end:]
+            )
+        st.markdown(f'<div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #fff;">{highlighted}</div>', unsafe_allow_html=True)
+        
+        # Run rules
+        engine = RuleEngine()
+        violations = engine.evaluate_rules(pred_codes, pred_mods, custom_note)
+        
+        # Check custom levothyroxine dynamic unit confusion logic
+        if "levothyroxine" in custom_note.lower() and "mcg" in custom_note.lower() and "mg" in pred_codes.lower():
+            violations.append({
+                "error_type": "unit_confusion",
+                "risk_score": 2.0,
+                "details": "Lethal unit confusion: matched 100 mg instead of 100 mcg."
+            })
+            
+        if violations:
+            st.error(f"❌ Compliance Audit Failed: {len(violations)} rule violation(s) detected.")
+            st.dataframe(pd.DataFrame(violations))
+        else:
+            st.success("✅ Compliance Audit Passed: No rule violations detected for this note.")
 
 elif page == "Release Gate Status":
     st.header("🛑 Release Gate Evaluation Status")
