@@ -322,8 +322,14 @@ elif page == "Release Gate Status":
     st.subheader("Release Candidate (v2) Metrics & Thresholds Check")
     
     if st.session_state["is_rolled_back"]:
-        st.success("✅ SYSTEM STATUS: ACTIVE (clinical-nlp-v1). The proposed candidate version (v2) has been successfully rolled back to baseline.")
-        if st.button("Re-evaluate Release Candidate (v2)"):
+        st.markdown(
+            '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 20px; border-radius: 5px; margin-bottom: 20px;">'
+            '<h3 style="color: #4caf50; margin: 0 0 10px 0;">✅ SYSTEM STATUS: ACTIVE (clinical-nlp-v1)</h3>'
+            '<p style="color: #ccc; margin: 0;">The proposed candidate version (v2) has been successfully rolled back to baseline in production settings.</p>'
+            '</div>', 
+            unsafe_allow_html=True
+        )
+        if st.button("Re-evaluate Release Candidate (v2)", type="secondary"):
             st.session_state["is_rolled_back"] = False
             st.rerun()
     else:
@@ -338,10 +344,10 @@ elif page == "Release Gate Status":
                 specialty_regressions.append(f"{spec} ({metrics['delta']:.4f})")
                 has_specialty_regression = True
         
-        spec_val = f"Fail: regressions in {', '.join(specialty_regressions)}" if has_specialty_regression else "Pass: all specialty regressions within tolerance (-0.05)"
+        spec_val = f"Regressions in {', '.join(specialty_regressions)}" if has_specialty_regression else "All specialty F1 deltas within tolerance (-0.05)"
         spec_status = "❌ FAIL" if has_specialty_regression else "✅ PASS"
         
-        # 2. Exact-match Accuracy check (average delta across specialties)
+        # 2. Exact-match Accuracy check
         avg_delta = sum(m["delta"] for m in comparison.values()) / len(comparison) if comparison else 0
         accuracy_val = f"{avg_delta:+.4f} average F1 delta" if avg_delta < 0 else "No F1 degradation"
         accuracy_status = "❌ FAIL" if avg_delta < -0.05 else "✅ PASS"
@@ -355,20 +361,52 @@ elif page == "Release Gate Status":
         unit_status = "❌ FAIL" if unit_confusions > 0 else "✅ PASS"
         
         checks = [
-            {"Rule": "Exact-match Accuracy Tolerance", "Value": accuracy_val, "Status": accuracy_status},
-            {"Rule": "Modifier Accuracy (No degradation)", "Value": modifier_val, "Status": modifier_status},
-            {"Rule": "Unit Confusion (Strictly 0%)", "Value": unit_val, "Status": unit_status},
-            {"Rule": "Specialty Regression Tolerance", "Value": spec_val, "Status": spec_status}
+            {"Rule": "Exact-match Accuracy Tolerance", "Value": accuracy_val, "Status": accuracy_status, "Desc": "Global F1 accuracy drift must not drop below baseline threshold."},
+            {"Rule": "Modifier Accuracy (No degradation)", "Value": modifier_val, "Status": modifier_status, "Desc": "CPT modifiers (e.g. modifier 25) must be appended correctly without regressions."},
+            {"Rule": "Unit Confusion (Strictly 0%)", "Value": unit_val, "Status": unit_status, "Desc": "Dosage unit confusion (mg vs mcg) must be completely absent."},
+            {"Rule": "Specialty Regression Tolerance", "Value": spec_val, "Status": spec_status, "Desc": "Specialty F1-score delta must be within acceptable staging tolerances."}
         ]
         
-        st.table(pd.DataFrame(checks))
+        # Render cards
+        col1, col2 = st.columns(2)
+        for i, c in enumerate(checks):
+            target_col = col1 if i % 2 == 0 else col2
+            with target_col:
+                bg_color = "rgba(244, 67, 54, 0.1)" if "FAIL" in c["Status"] else "rgba(76, 175, 80, 0.1)"
+                border_color = "#f44336" if "FAIL" in c["Status"] else "#4caf50"
+                text_color = "#f44336" if "FAIL" in c["Status"] else "#4caf50"
+                
+                st.markdown(
+                    f'<div style="background-color: {bg_color}; border: 1px solid {border_color}; padding: 20px; border-radius: 8px; margin-bottom: 15px;">'
+                    f'<div style="display: flex; justify-content: space-between; align-items: center;">'
+                    f'<h4 style="margin: 0; color: #fff;">{c["Rule"]}</h4>'
+                    f'<span style="color: {text_color}; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid {border_color};">{c["Status"]}</span>'
+                    f'</div>'
+                    f'<p style="margin: 10px 0 5px 0; font-size: 14px; color: #aaa;">{c["Desc"]}</p>'
+                    f'<code style="color: #fff; background-color: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">{c["Value"]}</code>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
         
         has_any_failure = any(c["Status"] == "❌ FAIL" for c in checks)
+        st.markdown("---")
         
         if has_any_failure:
-            st.error("🚨 RELEASE STATUS: BLOCKED. Deployment candidate has regressed. Please review the explanation inside the audit ledger or rollback to the baseline version (v1).")
+            st.markdown(
+                '<div style="background-color: rgba(244, 67, 54, 0.1); border-left: 5px solid #f44336; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
+                '<h4 style="color: #f44336; margin: 0 0 5px 0;">🚨 RELEASE STATUS: BLOCKED</h4>'
+                '<p style="color: #ccc; margin: 0; font-size: 14px;">The proposed candidate version (v2) has failed one or more critical release gates. Deployment is blocked.</p>'
+                '</div>',
+                unsafe_allow_html=True
+            )
             if st.button("Execute Rollback to Baseline (v1)", type="primary"):
                 st.session_state["is_rolled_back"] = True
                 st.rerun()
         else:
-            st.success("✅ RELEASE STATUS: PASSED. All safety and compliance checks are satisfied. The proposed candidate version (v2) is safe to deploy.")
+            st.markdown(
+                '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
+                '<h4 style="color: #4caf50; margin: 0 0 5px 0;">✅ RELEASE STATUS: PASSED</h4>'
+                '<p style="color: #ccc; margin: 0; font-size: 14px;">All safety and compliance checks are satisfied. The proposed candidate version (v2) is safe to deploy.</p>'
+                '</div>',
+                unsafe_allow_html=True
+            )
