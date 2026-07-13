@@ -25,7 +25,7 @@ st.markdown("""
         background: #0e1117;
         color: #ffffff;
     }
-    h1, h2, h3 {
+    h1, h2, h3, h4 {
         color: #00f2fe;
     }
     h1 {
@@ -53,6 +53,32 @@ st.markdown("""
         padding: 1px 4px;
         font-weight: 500;
     }
+    .kanban-column {
+        background-color: #161b22;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #30363d;
+        min-height: 400px;
+    }
+    .kanban-card {
+        background-color: #21262d;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .kanban-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #fff;
+        margin-bottom: 5px;
+    }
+    .kanban-meta {
+        font-size: 12px;
+        color: #8b949e;
+        margin-bottom: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -69,10 +95,20 @@ regression = RegressionEngine(loader)
 encounters = loader.load_encounters()
 predictions = loader.load_predictions()
 
+# Initialize session state for Kanban Board
+if "kanban_board" not in st.session_state:
+    board = {}
+    for idx, row in encounters.iterrows():
+        # Default statuses: REC001, REC002 -> Under Audit, others -> Pending
+        status = "Under Audit" if row["record_id"] in ["REC001", "REC002"] else "Pending Review"
+        board[row["record_id"]] = status
+    st.session_state["kanban_board"] = board
+
 # Sidebar
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", [
     "Model Regression Overview", 
+    "Audit Review Board",
     "Explainable Audit Ledger", 
     "Specialty & Compliance Analytics", 
     "Model Compare & Prompt Diff",
@@ -118,6 +154,71 @@ if page == "Model Regression Overview":
     st.subheader("Specialty Drift Breakdown")
     comparison_df = pd.DataFrame.from_dict(comparison, orient='index')
     st.dataframe(comparison_df.style.highlight_min(subset=["delta"], color="#a83232"))
+
+elif page == "Audit Review Board":
+    st.header("Audit Review Board")
+    st.markdown("Track clinical records through the QA workflow. Click **Inspect** to review code matches and highlight spans.")
+    
+    col_pending, col_audit, col_approved, col_rejected = st.columns(4)
+    
+    board = st.session_state["kanban_board"]
+    
+    # Column definitions
+    stages = {
+        "Pending Review": {"col": col_pending, "bg": "#30363d"},
+        "Under Audit": {"col": col_audit, "bg": "#1f6feb"},
+        "Adjudicated (Approved)": {"col": col_approved, "bg": "#2ea043"},
+        "Adjudicated (Rejected)": {"col": col_rejected, "bg": "#f85149"}
+    }
+    
+    # Draw Columns
+    for stage_name, stage_info in stages.items():
+        with stage_info["col"]:
+            st.markdown(
+                f'<div style="background-color: {stage_info["bg"]}; padding: 6px 12px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 15px; text-align: center;">'
+                f'{stage_name}'
+                f'</div>', 
+                unsafe_allow_html=True
+            )
+            
+            # Find records in this stage
+            stage_records = [r for r, s in board.items() if s == stage_name]
+            
+            if not stage_records:
+                st.markdown('<div style="text-align: center; color: #8b949e; padding: 20px;">Empty Column</div>', unsafe_allow_html=True)
+            
+            for rec_id in stage_records:
+                row = encounters[encounters["record_id"] == rec_id].iloc[0]
+                
+                # Card UI
+                with st.container():
+                    st.markdown(
+                        f'<div class="kanban-card">'
+                        f'<div class="kanban-title">{row["record_id"]} ({row["specialty"]})</div>'
+                        f'<div class="kanban-meta">Encounter: {row["encounter_id"]}</div>'
+                        f'<div style="font-size: 13px; color: #c9d1d9; margin-bottom: 12px; line-height: 1.4;">'
+                        f'{row["note_text"][:85]}...'
+                        f'</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Buttons
+                    btn_col1, btn_col2 = st.columns(2)
+                    with btn_col1:
+                        if stage_name != "Pending Review":
+                            if st.button("Move Up", key=f"up_{rec_id}"):
+                                prev_stage = list(stages.keys())[list(stages.keys()).index(stage_name) - 1]
+                                board[rec_id] = prev_stage
+                                st.session_state["kanban_board"] = board
+                                st.rerun()
+                    with btn_col2:
+                        if stage_name != "Adjudicated (Rejected)":
+                            if st.button("Move Down", key=f"down_{rec_id}"):
+                                next_stage = list(stages.keys())[list(stages.keys()).index(stage_name) + 1]
+                                board[rec_id] = next_stage
+                                st.session_state["kanban_board"] = board
+                                st.rerun()
 
 elif page == "Explainable Audit Ledger":
     st.header("Explainable Audit Ledger")
