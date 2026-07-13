@@ -89,7 +89,7 @@ predictions = loader.load_predictions()
 if "kanban_board" not in st.session_state:
     board = {}
     for idx, row in encounters.iterrows():
-        status = "Under Audit" if row["record_id"] in ["REC001", "REC002"] else "Pending Review"
+        status = "Auditing" if row["record_id"] in ["REC001", "REC002"] else "Pending"
         board[row["record_id"]] = status
     st.session_state["kanban_board"] = board
 
@@ -157,16 +157,16 @@ elif page == "Interactive Review Board":
     col_p, col_a, col_ap, col_r = st.columns(4)
     
     stages = {
-        "Pending Review": {"col": col_p, "header_color": "#8b949e", "bg": "rgba(139,148,158,0.15)"},
-        "Under Audit": {"col": col_a, "header_color": "#58a6ff", "bg": "rgba(88,166,255,0.15)"},
-        "Adjudicated (Approved)": {"col": col_ap, "header_color": "#3fb950", "bg": "rgba(63,185,80,0.15)"},
-        "Adjudicated (Rejected)": {"col": col_r, "header_color": "#f85149", "bg": "rgba(248,81,73,0.15)"}
+        "Pending": {"col": col_p, "header_color": "#8b949e", "bg": "rgba(139,148,158,0.15)"},
+        "Auditing": {"col": col_a, "header_color": "#58a6ff", "bg": "rgba(88,166,255,0.15)"},
+        "Approved": {"col": col_ap, "header_color": "#3fb950", "bg": "rgba(63,185,80,0.15)"},
+        "Rejected": {"col": col_r, "header_color": "#f85149", "bg": "rgba(248,81,73,0.15)"}
     }
     
     for s_name, s_info in stages.items():
         with s_info["col"]:
             st.markdown(
-                f'<div style="background-color: {s_info["bg"]}; border-bottom: 2px solid {s_info["header_color"]}; padding: 10px; border-radius: 6px 6px 0 0; text-align: center; font-weight: bold; color: white;">'
+                f'<div style="background-color: {s_info["bg"]}; border-bottom: 2px solid {s_info["header_color"]}; padding: 6px; border-radius: 6px 6px 0 0; text-align: center; font-size: 13px; font-weight: bold; color: white;">'
                 f'{s_name}'
                 f'</div>',
                 unsafe_allow_html=True
@@ -176,7 +176,7 @@ elif page == "Interactive Review Board":
             with st.container():
                 recs_in_stage = [r for r, s in board.items() if s == s_name]
                 if not recs_in_stage:
-                    st.markdown('<div style="text-align: center; padding: 30px; color: #8b949e; font-size: 13px;">No cases in stage</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="text-align: center; padding: 30px; color: #8b949e; font-size: 12px;">No cases</div>', unsafe_allow_html=True)
                 
                 for r_id in recs_in_stage:
                     row = encounters[encounters["record_id"] == r_id].iloc[0]
@@ -184,11 +184,11 @@ elif page == "Interactive Review Board":
                     st.markdown(
                         f'<div class="kanban-item">'
                         f'<div style="display: flex; justify-content: space-between; align-items: center;">'
-                        f'<span style="font-weight: bold; color: #58a6ff;">{row["record_id"]}</span>'
-                        f'<span style="font-size: 11px; background-color: #21262d; padding: 2px 6px; border-radius: 4px; border: 1px solid #30363d; color: #8b949e;">{row["specialty"]}</span>'
+                        f'<span style="font-weight: bold; color: #58a6ff; font-size: 13px;">{row["record_id"]}</span>'
+                        f'<span style="font-size: 10px; background-color: #21262d; padding: 2px 4px; border-radius: 4px; border: 1px solid #30363d; color: #8b949e;">{row["specialty"]}</span>'
                         f'</div>'
-                        f'<div style="font-size: 12px; color: #c9d1d9; margin-top: 8px; line-height: 1.4;">'
-                        f'{row["note_text"][:90]}...'
+                        f'<div style="font-size: 11px; color: #c9d1d9; margin-top: 8px; line-height: 1.4;">'
+                        f'{row["note_text"][:85]}...'
                         f'</div>'
                         f'</div>',
                         unsafe_allow_html=True
@@ -197,7 +197,7 @@ elif page == "Interactive Review Board":
                     # Interactivity column button options
                     btn_inspect, btn_move = st.columns([1, 1])
                     with btn_inspect:
-                        if st.button("Inspect Case", key=f"ins_{r_id}", use_container_width=True):
+                        if st.button("Inspect", key=f"ins_{r_id}", use_container_width=True):
                             inspect_record(r_id)
                             st.toast(f"Selected {r_id} for audit inspection")
                     with btn_move:
@@ -205,7 +205,7 @@ elif page == "Interactive Review Board":
                         current_idx = list(stages.keys()).index(s_name)
                         options = list(stages.keys())
                         new_stage = st.selectbox(
-                            "Transition State", 
+                            "Stage", 
                             options, 
                             index=current_idx, 
                             key=f"sel_{r_id}",
@@ -219,7 +219,7 @@ elif page == "Interactive Review Board":
 # 3. Explainable Audit Ledger
 elif page == "Explainable Audit Ledger":
     st.header("Explainable Audit Ledger")
-    st.markdown("Audit model predictions. Selected record matches are highlighted in real-time below.")
+    st.write("Select a clinical record to inspect matched billing codes and highlighted source text evidence spans.")
     
     selected_id = st.selectbox("Active Inspection Case", encounters["record_id"].tolist(), index=encounters["record_id"].tolist().index(st.session_state["selected_record"]))
     
@@ -257,12 +257,12 @@ elif page == "Explainable Audit Ledger":
         col_app, col_rej = st.columns(2)
         with col_app:
             if st.button("Approve Code Set", key=f"app_{selected_id}", type="primary", use_container_width=True):
-                st.session_state["kanban_board"][selected_id] = "Adjudicated (Approved)"
+                st.session_state["kanban_board"][selected_id] = "Approved"
                 st.success("Case Approved!")
                 st.rerun()
         with col_rej:
             if st.button("Flag / Reject Set", key=f"rej_{selected_id}", use_container_width=True):
-                st.session_state["kanban_board"][selected_id] = "Adjudicated (Rejected)"
+                st.session_state["kanban_board"][selected_id] = "Rejected"
                 st.error("Case Flagged for Regression!")
                 st.rerun()
                 

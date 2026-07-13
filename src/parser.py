@@ -12,7 +12,13 @@ class ClinicalParser:
             "M23.22": [r"knee arthroscopy", r"meniscus tear", r"torn meniscus"],
             "93451": [r"cardiac catheterization", r"heart cath"],
             "99213": [r"cardiovascular evaluation", r"routine visit", r"established patient visit"],
-            "97110": [r"physical therapy evaluation", r"rehabilitation", r"therapeutic exercises"]
+            "97110": [r"physical therapy evaluation", r"rehabilitation", r"therapeutic exercises"],
+            "45378": [r"colonoscopy"],
+            "K21.9": [r"gastroesophageal reflux disease", r"gerd"],
+            "G43.909": [r"migraine headaches", r"migraine"],
+            "J44.9": [r"chronic obstructive pulmonary disease", r"copd"],
+            "N18.3": [r"chronic kidney disease", r"ckd"],
+            "C50.919": [r"breast cancer"]
         }
 
     def parse_note(self, text):
