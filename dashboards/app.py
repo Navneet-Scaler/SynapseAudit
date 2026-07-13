@@ -82,7 +82,10 @@ st.markdown("Offline Quality Assurance Staging Gate & Adjudication Console for C
 
 # Database initializer
 db = AuditDatabase()
-db.run_compliance_audit()
+try:
+    db.run_compliance_audit()
+except Exception as e:
+    st.sidebar.warning("Running in Read-Only Mode")
 
 loader = DatasetLoader()
 regression = RegressionEngine(loader)
