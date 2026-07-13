@@ -411,7 +411,7 @@ elif page == "Release Gate Safety Charts":
             }
         ))
         fig_g1.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
-        st.plotly_chart(fig_g1, use_container_width=True)
+        st.plotly_chart(fig_g1, use_container_width=True, key="gate_f1_gauge")
         
     # Gauge 2: Modifier Violation Count
     with col_g2:
@@ -431,7 +431,7 @@ elif page == "Release Gate Safety Charts":
             }
         ))
         fig_g2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
-        st.plotly_chart(fig_g2, use_container_width=True)
+        st.plotly_chart(fig_g2, use_container_width=True, key="gate_mod_gauge")
         
     # Gauge 3: Unit Confusion Count
     with col_g3:
@@ -451,7 +451,7 @@ elif page == "Release Gate Safety Charts":
             }
         ))
         fig_g3.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
-        st.plotly_chart(fig_g3, use_container_width=True)
+        st.plotly_chart(fig_g3, use_container_width=True, key="gate_unit_gauge")
 
     # Rollback console
     st.markdown("---")
