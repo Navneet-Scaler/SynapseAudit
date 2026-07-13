@@ -193,16 +193,29 @@ elif page == "Release Gate Status":
     
     conn.close()
     
+    if "is_rolled_back" not in st.session_state:
+        st.session_state["is_rolled_back"] = False
+        
     st.subheader("Release Candidate (v2) Metrics & Thresholds Check")
     
-    # Define Gate Check Statuses
-    checks = [
-        {"Rule": "Exact-match Accuracy Tolerance", "Value": "Fails target threshold (-0.1667 delta in Cardiology)", "Status": "❌ FAIL"},
-        {"Rule": "Modifier Accuracy (No degradation)", "Value": f"{wrong_modifiers} wrong modifier violations", "Status": "❌ FAIL"},
-        {"Rule": "Unit Confusion (Strictly 0%)", "Value": f"{unit_confusions} unit mismatch violations", "Status": "❌ FAIL"},
-        {"Rule": "Specialty Regression Tolerance", "Value": "Fail: Cardiology and Orthopedics regressions detected", "Status": "❌ FAIL"}
-    ]
-    
-    st.table(pd.DataFrame(checks))
-    
-    st.error("🚨 RELEASE STATUS: BLOCKED. Deployment candidate has regressed. Please review the explanation inside the audit ledger or rollback to the baseline version (v1).")
+    if st.session_state["is_rolled_back"]:
+        st.success("✅ SYSTEM STATUS: ACTIVE (clinical-nlp-v1). The proposed candidate version (v2) has been successfully rolled back to baseline.")
+        if st.button("Re-evaluate Release Candidate (v2)"):
+            st.session_state["is_rolled_back"] = False
+            st.rerun()
+    else:
+        # Define Gate Check Statuses
+        checks = [
+            {"Rule": "Exact-match Accuracy Tolerance", "Value": "Fails target threshold (-0.1667 delta in Cardiology)", "Status": "❌ FAIL"},
+            {"Rule": "Modifier Accuracy (No degradation)", "Value": f"{wrong_modifiers} wrong modifier violations", "Status": "❌ FAIL"},
+            {"Rule": "Unit Confusion (Strictly 0%)", "Value": f"{unit_confusions} unit mismatch violations", "Status": "❌ FAIL"},
+            {"Rule": "Specialty Regression Tolerance", "Value": "Fail: Cardiology and Orthopedics regressions detected", "Status": "❌ FAIL"}
+        ]
+        
+        st.table(pd.DataFrame(checks))
+        
+        st.error("🚨 RELEASE STATUS: BLOCKED. Deployment candidate has regressed. Please review the explanation inside the audit ledger or rollback to the baseline version (v1).")
+        
+        if st.button("Execute Rollback to Baseline (v1)", type="primary"):
+            st.session_state["is_rolled_back"] = True
+            st.rerun()
