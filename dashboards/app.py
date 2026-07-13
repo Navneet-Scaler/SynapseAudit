@@ -28,6 +28,24 @@ st.markdown("""
     h1, h2, h3 {
         color: #00f2fe;
     }
+    h1 {
+        font-size: 2.2rem !important;
+    }
+    h2 {
+        font-size: 1.6rem !important;
+    }
+    h3 {
+        font-size: 1.25rem !important;
+    }
+    code {
+        font-size: 13px !important;
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+    }
+    pre {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+    }
     .highlight-span {
         background-color: rgba(0, 242, 254, 0.3);
         border-bottom: 2px solid #00f2fe;
