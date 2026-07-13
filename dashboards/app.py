@@ -35,7 +35,7 @@ st.markdown("""
         font-weight: 500;
     }
 </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 # Title
 st.title("🛡️ SynapseAudit")
@@ -121,7 +121,7 @@ elif page == "Explainable Audit Ledger":
             highlighted_text[end:]
         )
         
-    st.markdown(f'<div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #fff;">{highlighted_text}</div>', unsafe_allowed_html=True)
+    st.markdown(f'<div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #fff;">{highlighted_text}</div>', unsafe_allow_html=True)
     
     # Side by side code details
     st.subheader("Coding Comparison & Rule Compliance Details")
