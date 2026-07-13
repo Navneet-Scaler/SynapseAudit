@@ -181,9 +181,9 @@ elif page == "Specialty & Compliance Analytics":
                          title="Specialty Compliance Risk Distribution",
                          color_discrete_sequence=["#00c6ff", "#00f2fe"],
                          template="plotly_dark")
-         st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, use_container_width=True)
     else:
-         st.info("No compliance violations tracked in database.")
+        st.info("No compliance violations tracked in database.")
 
 elif page == "Model Compare & Prompt Diff":
     st.header("🔀 Model Compare & Prompt Diff")
