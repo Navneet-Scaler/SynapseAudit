@@ -1,8 +1,8 @@
-# SynapseAudit 🛡️
+# SynapseAudit
 
 **SynapseAudit** is a production-grade, offline, deterministic regression and compliance engine designed for Clinical NLP coding quality assurance. It helps clinical coding QA teams and ML engineers stress-test and audit model outputs (ICD-10, CPT, modifiers, and HCC risk adjustments) against a human-adjudicated gold-standard dataset before releasing new prompts or updated model checkpoints.
 
-## 🚀 Key Features
+## Key Features
 
 - **Clinical Section & Entity Parser**: Token-span parsing mapped to ground truth ICD-10 and CPT codes.
 - **Deterministic Rules Engine**: Automated compliance checks for:
@@ -16,7 +16,7 @@
 
 ---
 
-## 🛠️ Tech Stack & Setup
+## Tech Stack & Setup
 
 ### Prerequisites
 - Python 3.9+
@@ -40,7 +40,7 @@
 
 ---
 
-## 💻 Running the Application
+## Running the Application
 
 ### 1. Run Automated Unit Tests
 To run compliance rule checks and metric validations:
@@ -63,7 +63,7 @@ streamlit run dashboards/app.py
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 ├── README.md

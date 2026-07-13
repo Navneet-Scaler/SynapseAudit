@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title
-st.title("🛡️ SynapseAudit")
+st.title("SynapseAudit")
 st.subheader("Offline Deterministic Clinical Coding Regression & Compliance Engine")
 
 # Load data
@@ -81,7 +81,7 @@ page = st.sidebar.radio("Go to", [
 ])
 
 if page == "Model Regression Overview":
-    st.header("📈 Model Regression Overview")
+    st.header("Model Regression Overview")
     
     col1, col2, col3 = st.columns(3)
     
@@ -120,7 +120,7 @@ if page == "Model Regression Overview":
     st.dataframe(comparison_df.style.highlight_min(subset=["delta"], color="#a83232"))
 
 elif page == "Explainable Audit Ledger":
-    st.header("🔍 Explainable Audit Ledger")
+    st.header("Explainable Audit Ledger")
     st.write("Select a clinical record to inspect matched billing codes and highlighted source text evidence spans.")
     
     # Record Selector
@@ -157,13 +157,13 @@ elif page == "Explainable Audit Ledger":
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("### 🔹 Version 1 (Baseline)")
+        st.markdown("### Version 1 (Baseline)")
         st.write(f"**Predicted Codes**: `{c_v1['predicted_codes']}`")
         st.write(f"**Modifiers**: `{c_v1['predicted_modifiers'] or 'None'}`")
         st.write(f"**Confidence**: `{c_v1['confidence_scores']}`")
         
     with col2:
-        st.markdown("### 🔸 Version 2 (Candidate)")
+        st.markdown("### Version 2 (Candidate)")
         st.write(f"**Predicted Codes**: `{c_v2['predicted_codes']}`")
         st.write(f"**Modifiers**: `{c_v2['predicted_modifiers'] or 'None'}`")
         st.write(f"**Confidence**: `{c_v2['confidence_scores']}`")
@@ -174,13 +174,13 @@ elif page == "Explainable Audit Ledger":
     conn.close()
     
     if not audit_results.empty:
-        st.error("⚠️ Deterministic Rule Violations Found:")
+        st.error("Deterministic Rule Violations Found:")
         st.dataframe(audit_results[["model_version", "error_type", "risk_score", "details"]])
     else:
-        st.success("✅ No deterministic compliance rule violations flagged for this record.")
+        st.success("No deterministic compliance rule violations flagged for this record.")
 
 elif page == "Specialty & Compliance Analytics":
-    st.header("📊 Specialty & Compliance Analytics")
+    st.header("Specialty & Compliance Analytics")
     
     conn = sqlite3.connect("data/synapse_audit.db")
     df_audit = pd.read_sql_query("SELECT * FROM compliance_audit_results", conn)
@@ -204,12 +204,12 @@ elif page == "Specialty & Compliance Analytics":
         st.info("No compliance violations tracked in database.")
 
 elif page == "Model Compare & Prompt Diff":
-    st.header("🔀 Model Compare & Prompt Diff")
+    st.header("Model Compare & Prompt Diff")
     st.markdown("Inspect structural prompt updates and trace NLP model logic diffs.")
     
     col_diff1, col_diff2 = st.columns(2)
     with col_diff1:
-        st.markdown("### 🔹 Baseline System Prompt (v1)")
+        st.markdown("### Baseline System Prompt (v1)")
         st.code(
             "System Prompt: clinical-nlp-v1\n"
             "==============================\n"
@@ -219,7 +219,7 @@ elif page == "Model Compare & Prompt Diff":
             language="markdown"
         )
     with col_diff2:
-        st.markdown("### 🔸 Candidate System Prompt (v2)")
+        st.markdown("### Candidate System Prompt (v2)")
         st.code(
             "System Prompt: clinical-nlp-v2\n"
             "==============================\n"
@@ -228,10 +228,10 @@ elif page == "Model Compare & Prompt Diff":
             language="markdown"
         )
     
-    st.info("💡 **Prompt Optimization Review**: The candidate prompt (v2) omitted the explicit rule requiring Modifier 25 attachments for office visits billed alongside procedural evaluations, causing a regression in Cardiology and Orthopedics claim accuracy.")
+    st.info("**Prompt Optimization Review**: The candidate prompt (v2) omitted the explicit rule requiring Modifier 25 attachments for office visits billed alongside procedural evaluations, causing a regression in Cardiology and Orthopedics claim accuracy.")
 
 elif page == "Synthetic Testing Lab":
-    st.header("🔬 Synthetic Edge Case Testing Lab")
+    st.header("Synthetic Edge Case Testing Lab")
     st.markdown("Input custom EHR notes to validate NLP extraction and rule check results in real-time.")
     
     template = st.selectbox("Select Sample Note Template", [
@@ -295,13 +295,13 @@ elif page == "Synthetic Testing Lab":
             })
             
         if violations:
-            st.error(f"❌ Compliance Audit Failed: {len(violations)} rule violation(s) detected.")
+            st.error(f"Compliance Audit Failed: {len(violations)} rule violation(s) detected.")
             st.dataframe(pd.DataFrame(violations))
         else:
-            st.success("✅ Compliance Audit Passed: No rule violations detected for this note.")
+            st.success("Compliance Audit Passed: No rule violations detected for this note.")
 
 elif page == "Release Gate Status":
-    st.header("🛑 Release Gate Evaluation Status")
+    st.header("Release Gate Evaluation Status")
     
     # Calculate release checks
     # Version v2 vs Version v1
@@ -324,7 +324,7 @@ elif page == "Release Gate Status":
     if st.session_state["is_rolled_back"]:
         st.markdown(
             '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 20px; border-radius: 5px; margin-bottom: 20px;">'
-            '<h3 style="color: #4caf50; margin: 0 0 10px 0;">✅ SYSTEM STATUS: ACTIVE (clinical-nlp-v1)</h3>'
+            '<h3 style="color: #4caf50; margin: 0 0 10px 0;">SYSTEM STATUS: ACTIVE (clinical-nlp-v1)</h3>'
             '<p style="color: #ccc; margin: 0;">The proposed candidate version (v2) has been successfully rolled back to baseline in production settings.</p>'
             '</div>', 
             unsafe_allow_html=True
@@ -345,20 +345,20 @@ elif page == "Release Gate Status":
                 has_specialty_regression = True
         
         spec_val = f"Regressions in {', '.join(specialty_regressions)}" if has_specialty_regression else "All specialty F1 deltas within tolerance (-0.05)"
-        spec_status = "❌ FAIL" if has_specialty_regression else "✅ PASS"
+        spec_status = "FAIL" if has_specialty_regression else "PASS"
         
         # 2. Exact-match Accuracy check
         avg_delta = sum(m["delta"] for m in comparison.values()) / len(comparison) if comparison else 0
         accuracy_val = f"{avg_delta:+.4f} average F1 delta" if avg_delta < 0 else "No F1 degradation"
-        accuracy_status = "❌ FAIL" if avg_delta < -0.05 else "✅ PASS"
+        accuracy_status = "FAIL" if avg_delta < -0.05 else "PASS"
         
         # 3. Modifier violation check
         modifier_val = f"{wrong_modifiers} wrong modifier violations"
-        modifier_status = "❌ FAIL" if wrong_modifiers > 0 else "✅ PASS"
+        modifier_status = "FAIL" if wrong_modifiers > 0 else "PASS"
         
         # 4. Unit confusion check
         unit_val = f"{unit_confusions} unit mismatch violations"
-        unit_status = "❌ FAIL" if unit_confusions > 0 else "✅ PASS"
+        unit_status = "FAIL" if unit_confusions > 0 else "PASS"
         
         checks = [
             {"Rule": "Exact-match Accuracy Tolerance", "Value": accuracy_val, "Status": accuracy_status, "Desc": "Global F1 accuracy drift must not drop below baseline threshold."},
@@ -388,13 +388,13 @@ elif page == "Release Gate Status":
                     unsafe_allow_html=True
                 )
         
-        has_any_failure = any(c["Status"] == "❌ FAIL" for c in checks)
+        has_any_failure = any(c["Status"] == "FAIL" for c in checks)
         st.markdown("---")
         
         if has_any_failure:
             st.markdown(
                 '<div style="background-color: rgba(244, 67, 54, 0.1); border-left: 5px solid #f44336; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
-                '<h4 style="color: #f44336; margin: 0 0 5px 0;">🚨 RELEASE STATUS: BLOCKED</h4>'
+                '<h4 style="color: #f44336; margin: 0 0 5px 0;">RELEASE STATUS: BLOCKED</h4>'
                 '<p style="color: #ccc; margin: 0; font-size: 14px;">The proposed candidate version (v2) has failed one or more critical release gates. Deployment is blocked.</p>'
                 '</div>',
                 unsafe_allow_html=True
@@ -405,7 +405,7 @@ elif page == "Release Gate Status":
         else:
             st.markdown(
                 '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
-                '<h4 style="color: #4caf50; margin: 0 0 5px 0;">✅ RELEASE STATUS: PASSED</h4>'
+                '<h4 style="color: #4caf50; margin: 0 0 5px 0;">RELEASE STATUS: PASSED</h4>'
                 '<p style="color: #ccc; margin: 0; font-size: 14px;">All safety and compliance checks are satisfied. The proposed candidate version (v2) is safe to deploy.</p>'
                 '</div>',
                 unsafe_allow_html=True
