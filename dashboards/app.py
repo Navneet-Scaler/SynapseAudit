@@ -92,6 +92,19 @@ if "kanban_board" not in st.session_state:
         status = "Auditing" if row["record_id"] in ["REC001", "REC002"] else "Pending"
         board[row["record_id"]] = status
     st.session_state["kanban_board"] = board
+else:
+    # Migrate old status values to prevent empty columns from cached browser state
+    board = st.session_state["kanban_board"]
+    for r_id, status in list(board.items()):
+        if status == "Under Audit":
+            board[r_id] = "Auditing"
+        elif status == "Pending Review":
+            board[r_id] = "Pending"
+        elif status == "Adjudicated (Approved)":
+            board[r_id] = "Approved"
+        elif status == "Adjudicated (Rejected)":
+            board[r_id] = "Rejected"
+    st.session_state["kanban_board"] = board
 
 if "selected_record" not in st.session_state:
     st.session_state["selected_record"] = "REC001"
