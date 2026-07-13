@@ -10,6 +10,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+DEFAULT_DB_PATH = os.path.join(PROJECT_ROOT, "data", "synapse_audit.db")
+
 from src.dataset_loader import DatasetLoader
 from src.regression import RegressionEngine
 from src.database import AuditDatabase
@@ -295,7 +298,7 @@ elif page == "Explainable Audit Ledger":
         st.markdown(f"**Stable Baseline (v1)**: `{c_v1['predicted_codes']}` (Modifiers: `{c_v1['predicted_modifiers'] or 'None'}`)")
         st.markdown(f"**Candidate Release (v2)**: `{c_v2['predicted_codes']}` (Modifiers: `{c_v2['predicted_modifiers'] or 'None'}`)")
         
-        conn = sqlite3.connect("data/synapse_audit.db")
+        conn = sqlite3.connect(DEFAULT_DB_PATH)
         audit_results = pd.read_sql_query(f"SELECT * FROM compliance_audit_results WHERE record_id = '{selected_id}'", conn)
         conn.close()
         
@@ -399,7 +402,7 @@ elif page == "Release Gate Safety Charts":
     st.header("Release Gate Safety Charts")
     st.markdown("Gauge visual charts tracking Candidate release compliance metrics relative to strict staging thresholds.")
     
-    conn = sqlite3.connect("data/synapse_audit.db")
+    conn = sqlite3.connect(DEFAULT_DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM compliance_audit_results WHERE model_version = 'clinical-nlp-v2' AND error_type = 'unit_confusion'")
     unit_confusions = cursor.fetchone()[0]

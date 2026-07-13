@@ -1,9 +1,13 @@
+import os
 import sqlite3
 import pandas as pd
 from src.rules import RuleEngine
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+DEFAULT_DB_PATH = os.path.join(PROJECT_ROOT, "data", "synapse_audit.db")
+
 class AuditDatabase:
-    def __init__(self, db_path="data/synapse_audit.db"):
+    def __init__(self, db_path=DEFAULT_DB_PATH):
         self.db_path = db_path
         self.rule_engine = RuleEngine()
 
