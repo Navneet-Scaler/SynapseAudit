@@ -31,3 +31,13 @@ CREATE TABLE IF NOT EXISTS compliance_audit_results (
     risk_score DOUBLE PRECISION NOT NULL,
     details TEXT
 );
+
+CREATE TABLE IF NOT EXISTS release_gate_runs (
+    run_id SERIAL PRIMARY KEY,
+    model_version VARCHAR(50) NOT NULL,
+    prompt_version VARCHAR(50) NOT NULL,
+    run_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) NOT NULL, -- PASSED, FAILED
+    failed_rules TEXT -- Details of failed validation rules
+);
+

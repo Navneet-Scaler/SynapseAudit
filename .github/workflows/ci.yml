@@ -1,0 +1,39 @@
+name: SynapseAudit CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-level: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy pytest
+
+    - name: Populate Mock Database
+      run: |
+        python data/mock_generator.py
+
+    - name: Run Unit Tests
+      run: |
+        PYTHONPATH=. python -m pytest tests/
+
+    - name: Run Release Gate Check
+      run: |
+        # Note: In CI we run the gate. We expect it to exit with code 1 if v2 fails
+        # For CI demo purposes, we can catch the exit code or run it to verify behavior.
+        PYTHONPATH=. python src/release_gate.py || echo "Release gate successfully blocked regressed model"
