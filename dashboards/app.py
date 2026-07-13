@@ -6,6 +6,10 @@ import plotly.graph_objects as go
 import sqlite3
 import json
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.dataset_loader import DatasetLoader
 from src.regression import RegressionEngine
 from src.database import AuditDatabase
