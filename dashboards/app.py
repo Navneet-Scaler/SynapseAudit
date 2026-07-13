@@ -204,18 +204,48 @@ elif page == "Release Gate Status":
             st.session_state["is_rolled_back"] = False
             st.rerun()
     else:
-        # Define Gate Check Statuses
+        # Compute dynamic checks based on regression deltas and compliance audit
+        comparison = regression.compare_versions()
+        
+        # 1. Specialty Regression Check
+        specialty_regressions = []
+        has_specialty_regression = False
+        for spec, metrics in comparison.items():
+            if metrics['delta'] < -0.05:
+                specialty_regressions.append(f"{spec} ({metrics['delta']:.4f})")
+                has_specialty_regression = True
+        
+        spec_val = f"Fail: regressions in {', '.join(specialty_regressions)}" if has_specialty_regression else "Pass: all specialty regressions within tolerance (-0.05)"
+        spec_status = "❌ FAIL" if has_specialty_regression else "✅ PASS"
+        
+        # 2. Exact-match Accuracy check (average delta across specialties)
+        avg_delta = sum(m["delta"] for m in comparison.values()) / len(comparison) if comparison else 0
+        accuracy_val = f"{avg_delta:+.4f} average F1 delta" if avg_delta < 0 else "No F1 degradation"
+        accuracy_status = "❌ FAIL" if avg_delta < -0.05 else "✅ PASS"
+        
+        # 3. Modifier violation check
+        modifier_val = f"{wrong_modifiers} wrong modifier violations"
+        modifier_status = "❌ FAIL" if wrong_modifiers > 0 else "✅ PASS"
+        
+        # 4. Unit confusion check
+        unit_val = f"{unit_confusions} unit mismatch violations"
+        unit_status = "❌ FAIL" if unit_confusions > 0 else "✅ PASS"
+        
         checks = [
-            {"Rule": "Exact-match Accuracy Tolerance", "Value": "Fails target threshold (-0.1667 delta in Cardiology)", "Status": "❌ FAIL"},
-            {"Rule": "Modifier Accuracy (No degradation)", "Value": f"{wrong_modifiers} wrong modifier violations", "Status": "❌ FAIL"},
-            {"Rule": "Unit Confusion (Strictly 0%)", "Value": f"{unit_confusions} unit mismatch violations", "Status": "❌ FAIL"},
-            {"Rule": "Specialty Regression Tolerance", "Value": "Fail: Cardiology and Orthopedics regressions detected", "Status": "❌ FAIL"}
+            {"Rule": "Exact-match Accuracy Tolerance", "Value": accuracy_val, "Status": accuracy_status},
+            {"Rule": "Modifier Accuracy (No degradation)", "Value": modifier_val, "Status": modifier_status},
+            {"Rule": "Unit Confusion (Strictly 0%)", "Value": unit_val, "Status": unit_status},
+            {"Rule": "Specialty Regression Tolerance", "Value": spec_val, "Status": spec_status}
         ]
         
         st.table(pd.DataFrame(checks))
         
-        st.error("🚨 RELEASE STATUS: BLOCKED. Deployment candidate has regressed. Please review the explanation inside the audit ledger or rollback to the baseline version (v1).")
+        has_any_failure = any(c["Status"] == "❌ FAIL" for c in checks)
         
-        if st.button("Execute Rollback to Baseline (v1)", type="primary"):
-            st.session_state["is_rolled_back"] = True
-            st.rerun()
+        if has_any_failure:
+            st.error("🚨 RELEASE STATUS: BLOCKED. Deployment candidate has regressed. Please review the explanation inside the audit ledger or rollback to the baseline version (v1).")
+            if st.button("Execute Rollback to Baseline (v1)", type="primary"):
+                st.session_state["is_rolled_back"] = True
+                st.rerun()
+        else:
+            st.success("✅ RELEASE STATUS: PASSED. All safety and compliance checks are satisfied. The proposed candidate version (v2) is safe to deploy.")
