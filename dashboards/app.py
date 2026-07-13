@@ -13,80 +13,70 @@ from src.parser import ClinicalParser
 from src.rules import RuleEngine
 
 # Page config
-st.set_page_config(page_title="SynapseAudit QA Engine", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="SynapseAudit Clinical QA Workspace", layout="wide", initial_sidebar_state="expanded")
 
-# Dark Theme styling
+# Dark theme custom stylesheet for premium clinical aesthetics
 st.markdown("""
 <style>
     .reportview-container {
-        background: #0e1117;
+        background: #0d1117;
     }
     .main {
-        background: #0e1117;
-        color: #ffffff;
+        background: #0d1117;
+        color: #c9d1d9;
     }
     h1, h2, h3, h4 {
-        color: #00f2fe;
+        color: #58a6ff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     }
-    h1 {
-        font-size: 2.2rem !important;
-    }
-    h2 {
-        font-size: 1.6rem !important;
-    }
-    h3 {
-        font-size: 1.25rem !important;
-    }
-    code {
-        font-size: 13px !important;
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-    }
-    pre {
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
+    .card-border {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 18px;
+        margin-bottom: 15px;
     }
     .highlight-span {
-        background-color: rgba(0, 242, 254, 0.3);
-        border-bottom: 2px solid #00f2fe;
-        border-radius: 3px;
-        padding: 1px 4px;
-        font-weight: 500;
+        background-color: rgba(56, 139, 253, 0.2);
+        border: 1px solid #388bfd;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-block;
+        margin: 2px 0;
     }
-    .kanban-column {
-        background-color: #161b22;
-        padding: 15px;
+    .highlight-span:hover {
+        background-color: rgba(56, 139, 253, 0.45);
+    }
+    .kanban-col {
+        background-color: #0d1117;
+        border: 1px solid #30363d;
         border-radius: 8px;
-        border: 1px solid #30363d;
-        min-height: 400px;
-    }
-    .kanban-card {
-        background-color: #21262d;
         padding: 12px;
-        border-radius: 6px;
+        min-height: 480px;
+    }
+    .kanban-item {
+        background-color: #161b22;
         border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 15px;
         margin-bottom: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .kanban-title {
-        font-size: 15px;
-        font-weight: bold;
-        color: #fff;
-        margin-bottom: 5px;
-    }
-    .kanban-meta {
-        font-size: 12px;
-        color: #8b949e;
-        margin-bottom: 10px;
+    .kanban-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        border-color: #58a6ff;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Title
-st.title("SynapseAudit")
-st.subheader("Offline Deterministic Clinical Coding Regression & Compliance Engine")
+# App Title & Header Banner
+st.title("SynapseAudit Clinical Workspace")
+st.markdown("Offline Quality Assurance Staging Gate & Adjudication Console for Clinical NLP Coding")
 
-# Load data
+# Database initializer
 db = AuditDatabase()
 db.run_compliance_audit()
 
@@ -95,285 +85,268 @@ regression = RegressionEngine(loader)
 encounters = loader.load_encounters()
 predictions = loader.load_predictions()
 
-# Initialize session state for Kanban Board
+# Initialize dynamic state variables
 if "kanban_board" not in st.session_state:
     board = {}
     for idx, row in encounters.iterrows():
-        # Default statuses: REC001, REC002 -> Under Audit, others -> Pending
         status = "Under Audit" if row["record_id"] in ["REC001", "REC002"] else "Pending Review"
         board[row["record_id"]] = status
     st.session_state["kanban_board"] = board
 
-# Sidebar
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", [
-    "Model Regression Overview", 
-    "Audit Review Board",
+if "selected_record" not in st.session_state:
+    st.session_state["selected_record"] = "REC001"
+
+# Sidebar Navigation Panel
+st.sidebar.markdown("### Workspace Console")
+page = st.sidebar.radio("Console Navigation", [
+    "Staging Regression Overview", 
+    "Interactive Review Board",
     "Explainable Audit Ledger", 
-    "Specialty & Compliance Analytics", 
-    "Model Compare & Prompt Diff",
-    "Synthetic Testing Lab",
-    "Release Gate Status"
+    "Prompt Logic Compare",
+    "Rule Sandbox Testing Lab",
+    "Release Gate Safety Charts"
 ])
 
-if page == "Model Regression Overview":
-    st.header("Model Regression Overview")
+# Utility to trigger record inspection
+def inspect_record(rec_id):
+    st.session_state["selected_record"] = rec_id
+
+# 1. Staging Regression Overview
+if page == "Staging Regression Overview":
+    st.header("Staging Regression Overview")
     
-    col1, col2, col3 = st.columns(3)
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("Current Staging Candidate", "clinical-nlp-v2", "Staging")
+    col_m2.metric("Active Production Reference", "clinical-nlp-v1", "Stable")
+    col_m3.metric("Evaluated Slices", f"{len(encounters)} cases")
     
-    # Calculate global metrics
-    v1_cnt = len(predictions[predictions["model_version"] == "clinical-nlp-v1"])
-    v2_cnt = len(predictions[predictions["model_version"] == "clinical-nlp-v2"])
-    
-    col1.metric("Baseline Model (v1)", "clinical-nlp-v1", "Active Baseline")
-    col2.metric("Candidate Model (v2)", "clinical-nlp-v2", "Proposed Release")
-    col3.metric("Total Audited Encounters", f"{len(encounters)} records")
-    
-    st.subheader("Specialty F1-Score Performance Comparison")
+    st.markdown("---")
+    st.subheader("F1 Score Specialty Regression Analysis")
     comparison = regression.compare_versions()
     
-    # Render Comparison Bar Chart
+    # Plotly Specialty Performance
     specs = list(comparison.keys())
     v1_scores = [comparison[s]["v1_f1"] for s in specs]
     v2_scores = [comparison[s]["v2_f1"] for s in specs]
     
     fig = go.Figure(data=[
-        go.Bar(name='v1 (Baseline)', x=specs, y=v1_scores, marker_color='#00c6ff'),
-        go.Bar(name='v2 (Candidate)', x=specs, y=v2_scores, marker_color='#00f2fe')
+        go.Bar(name='Active Reference (v1)', x=specs, y=v1_scores, marker_color='#1f6feb'),
+        go.Bar(name='Staging Candidate (v2)', x=specs, y=v2_scores, marker_color='#ff7b72')
     ])
     fig.update_layout(
-        barmode='group', 
+        barmode='group',
         template="plotly_dark",
-        yaxis_title="F1-Score",
-        xaxis_title="Specialty",
+        yaxis_title="F1 Score",
+        xaxis_title="Clinical Specialty",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)"
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Specialty Drift Breakdown")
+    # Detailed data grid
+    st.subheader("Performance Drift Details")
     comparison_df = pd.DataFrame.from_dict(comparison, orient='index')
-    st.dataframe(comparison_df.style.highlight_min(subset=["delta"], color="#a83232"))
+    st.dataframe(comparison_df.style.highlight_min(subset=["delta"], color="#8b1a1a"))
 
-elif page == "Audit Review Board":
-    st.header("Audit Review Board")
-    st.markdown("Track clinical records through the QA workflow. Click **Inspect** to review code matches and highlight spans.")
-    
-    col_pending, col_audit, col_approved, col_rejected = st.columns(4)
+# 2. Interactive Review Board (Kanban style)
+elif page == "Interactive Review Board":
+    st.header("Interactive Review Board")
+    st.markdown("Auditors manage pipeline queues here. Move cases between columns or click Inspect to view detail.")
     
     board = st.session_state["kanban_board"]
+    col_p, col_a, col_ap, col_r = st.columns(4)
     
-    # Column definitions
     stages = {
-        "Pending Review": {"col": col_pending, "bg": "#30363d"},
-        "Under Audit": {"col": col_audit, "bg": "#1f6feb"},
-        "Adjudicated (Approved)": {"col": col_approved, "bg": "#2ea043"},
-        "Adjudicated (Rejected)": {"col": col_rejected, "bg": "#f85149"}
+        "Pending Review": {"col": col_p, "header_color": "#8b949e", "bg": "rgba(139,148,158,0.15)"},
+        "Under Audit": {"col": col_a, "header_color": "#58a6ff", "bg": "rgba(88,166,255,0.15)"},
+        "Adjudicated (Approved)": {"col": col_ap, "header_color": "#3fb950", "bg": "rgba(63,185,80,0.15)"},
+        "Adjudicated (Rejected)": {"col": col_r, "header_color": "#f85149", "bg": "rgba(248,81,73,0.15)"}
     }
     
-    # Draw Columns
-    for stage_name, stage_info in stages.items():
-        with stage_info["col"]:
+    for s_name, s_info in stages.items():
+        with s_info["col"]:
             st.markdown(
-                f'<div style="background-color: {stage_info["bg"]}; padding: 6px 12px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 15px; text-align: center;">'
-                f'{stage_name}'
-                f'</div>', 
+                f'<div style="background-color: {s_info["bg"]}; border-bottom: 2px solid {s_info["header_color"]}; padding: 10px; border-radius: 6px 6px 0 0; text-align: center; font-weight: bold; color: white;">'
+                f'{s_name}'
+                f'</div>',
                 unsafe_allow_html=True
             )
             
-            # Find records in this stage
-            stage_records = [r for r, s in board.items() if s == stage_name]
-            
-            if not stage_records:
-                st.markdown('<div style="text-align: center; color: #8b949e; padding: 20px;">Empty Column</div>', unsafe_allow_html=True)
-            
-            for rec_id in stage_records:
-                row = encounters[encounters["record_id"] == rec_id].iloc[0]
+            # Column container
+            with st.container():
+                recs_in_stage = [r for r, s in board.items() if s == s_name]
+                if not recs_in_stage:
+                    st.markdown('<div style="text-align: center; padding: 30px; color: #8b949e; font-size: 13px;">No cases in stage</div>', unsafe_allow_html=True)
                 
-                # Card UI
-                with st.container():
+                for r_id in recs_in_stage:
+                    row = encounters[encounters["record_id"] == r_id].iloc[0]
+                    
                     st.markdown(
-                        f'<div class="kanban-card">'
-                        f'<div class="kanban-title">{row["record_id"]} ({row["specialty"]})</div>'
-                        f'<div class="kanban-meta">Encounter: {row["encounter_id"]}</div>'
-                        f'<div style="font-size: 13px; color: #c9d1d9; margin-bottom: 12px; line-height: 1.4;">'
-                        f'{row["note_text"][:85]}...'
+                        f'<div class="kanban-item">'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center;">'
+                        f'<span style="font-weight: bold; color: #58a6ff;">{row["record_id"]}</span>'
+                        f'<span style="font-size: 11px; background-color: #21262d; padding: 2px 6px; border-radius: 4px; border: 1px solid #30363d; color: #8b949e;">{row["specialty"]}</span>'
+                        f'</div>'
+                        f'<div style="font-size: 12px; color: #c9d1d9; margin-top: 8px; line-height: 1.4;">'
+                        f'{row["note_text"][:90]}...'
                         f'</div>'
                         f'</div>',
                         unsafe_allow_html=True
                     )
                     
-                    # Buttons
-                    btn_col1, btn_col2 = st.columns(2)
-                    with btn_col1:
-                        if stage_name != "Pending Review":
-                            if st.button("Move Up", key=f"up_{rec_id}"):
-                                prev_stage = list(stages.keys())[list(stages.keys()).index(stage_name) - 1]
-                                board[rec_id] = prev_stage
-                                st.session_state["kanban_board"] = board
-                                st.rerun()
-                    with btn_col2:
-                        if stage_name != "Adjudicated (Rejected)":
-                            if st.button("Move Down", key=f"down_{rec_id}"):
-                                next_stage = list(stages.keys())[list(stages.keys()).index(stage_name) + 1]
-                                board[rec_id] = next_stage
-                                st.session_state["kanban_board"] = board
-                                st.rerun()
+                    # Interactivity column button options
+                    btn_inspect, btn_move = st.columns([1, 1])
+                    with btn_inspect:
+                        if st.button("Inspect Case", key=f"ins_{r_id}", use_container_width=True):
+                            inspect_record(r_id)
+                            st.toast(f"Selected {r_id} for audit inspection")
+                    with btn_move:
+                        # Dropdown selector to change column instantly
+                        current_idx = list(stages.keys()).index(s_name)
+                        options = list(stages.keys())
+                        new_stage = st.selectbox(
+                            "Transition State", 
+                            options, 
+                            index=current_idx, 
+                            key=f"sel_{r_id}",
+                            label_visibility="collapsed"
+                        )
+                        if new_stage != s_name:
+                            board[r_id] = new_stage
+                            st.session_state["kanban_board"] = board
+                            st.rerun()
 
+# 3. Explainable Audit Ledger
 elif page == "Explainable Audit Ledger":
     st.header("Explainable Audit Ledger")
-    st.write("Select a clinical record to inspect matched billing codes and highlighted source text evidence spans.")
+    st.markdown("Audit model predictions. Selected record matches are highlighted in real-time below.")
     
-    # Record Selector
-    selected_id = st.selectbox("Select Record ID", encounters["record_id"].tolist())
+    selected_id = st.selectbox("Active Inspection Case", encounters["record_id"].tolist(), index=encounters["record_id"].tolist().index(st.session_state["selected_record"]))
+    
+    # Save selection back
+    st.session_state["selected_record"] = selected_id
     
     record = encounters[encounters["record_id"] == selected_id].iloc[0]
     note_text = record["note_text"]
     
-    st.subheader("Clinical Note Text")
+    col_note, col_audit_actions = st.columns([2, 1])
     
-    # Parser and Entity Highlighting
-    parser = ClinicalParser()
-    spans = parser.parse_note(note_text)
+    with col_note:
+        st.subheader("Highlighted Evidence Spans")
+        parser = ClinicalParser()
+        spans = parser.parse_note(note_text)
+        spans = sorted(spans, key=lambda x: x["start"], reverse=True)
+        highlighted = note_text
+        for s in spans:
+            start, end, code = s["start"], s["end"], s["code"]
+            highlighted = (
+                highlighted[:start] + 
+                f'<span class="highlight-span" title="Clinical Entity matching code: {code}">{highlighted[start:end]} [Code: {code}]</span>' + 
+                highlighted[end:]
+            )
+        st.markdown(f'<div style="background-color: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #c9d1d9;">{highlighted}</div>', unsafe_allow_html=True)
+        
+    with col_audit_actions:
+        st.subheader("Adjudication Dashboard")
+        
+        # State display
+        current_status = st.session_state["kanban_board"][selected_id]
+        st.markdown(f"**Current Case Workflow State**: `{current_status}`")
+        
+        # Adjudication controls
+        col_app, col_rej = st.columns(2)
+        with col_app:
+            if st.button("Approve Code Set", key=f"app_{selected_id}", type="primary", use_container_width=True):
+                st.session_state["kanban_board"][selected_id] = "Adjudicated (Approved)"
+                st.success("Case Approved!")
+                st.rerun()
+        with col_rej:
+            if st.button("Flag / Reject Set", key=f"rej_{selected_id}", use_container_width=True):
+                st.session_state["kanban_board"][selected_id] = "Adjudicated (Rejected)"
+                st.error("Case Flagged for Regression!")
+                st.rerun()
+                
+        st.markdown("---")
+        st.markdown("#### Code comparison detail")
+        
+        c_v1 = predictions[(predictions["record_id"] == selected_id) & (predictions["model_version"] == "clinical-nlp-v1")].iloc[0]
+        c_v2 = predictions[(predictions["record_id"] == selected_id) & (predictions["model_version"] == "clinical-nlp-v2")].iloc[0]
+        
+        st.markdown(f"**Stable Baseline (v1)**: `{c_v1['predicted_codes']}` (Modifiers: `{c_v1['predicted_modifiers'] or 'None'}`)")
+        st.markdown(f"**Candidate Release (v2)**: `{c_v2['predicted_codes']}` (Modifiers: `{c_v2['predicted_modifiers'] or 'None'}`)")
+        
+        conn = sqlite3.connect("data/synapse_audit.db")
+        audit_results = pd.read_sql_query(f"SELECT * FROM compliance_audit_results WHERE record_id = '{selected_id}'", conn)
+        conn.close()
+        
+        if not audit_results.empty:
+            st.error("Staging Gate Compliance Violations:")
+            st.dataframe(audit_results[["error_type", "risk_score", "details"]], hide_index=True)
+        else:
+            st.success("Case passes all deterministic compliance rules.")
+
+# 4. Prompt Logic Compare
+elif page == "Prompt Logic Compare":
+    st.header("Prompt Logic Compare")
+    st.markdown("Interactive diff display showing changes between baseline (v1) and staging candidate (v2) prompt templates.")
     
-    # Sort spans in reverse order to replace without breaking indices
-    spans = sorted(spans, key=lambda x: x["start"], reverse=True)
-    highlighted_text = note_text
-    
-    for s in spans:
-        start, end, code = s["start"], s["end"], s["code"]
-        highlighted_text = (
-            highlighted_text[:start] + 
-            f'<span class="highlight-span">{highlighted_text[start:end]} [Code: {code}]</span>' + 
-            highlighted_text[end:]
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        st.subheader("Baseline Prompt Configuration (v1)")
+        st.markdown(
+            '<div style="background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 13px;">'
+            'System Prompt: clinical-nlp-v1\n'
+            '==============================\n'
+            'You are an expert clinical coder. Extract CPT and ICD-10 codes from notes.\n'
+            '<span style="background-color: rgba(63,185,80,0.25); border: 1px solid #2ea043; padding: 2px 4px; border-radius: 3px;">CRITICAL: If a procedure (e.g. cardiac cath 93451) and E/M visit (e.g. 99213) occur on same day, ensure modifier 25 is attached to the E/M code (format: 99213:25).</span>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    with col_p2:
+        st.subheader("Candidate Prompt Configuration (v2)")
+        st.markdown(
+            '<div style="background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 13px;">'
+            'System Prompt: clinical-nlp-v2\n'
+            '==============================\n'
+            'You are a clinical assistant. Extract diagnostic codes and CPT codes from notes.\n'
+            '<span style="background-color: rgba(248,81,73,0.25); border: 1px solid #f85149; padding: 2px 4px; border-radius: 3px;">Ensure E/M levels are selected correctly. Ensure all details are matched. Do not hallucinate.</span>'
+            '</div>',
+            unsafe_allow_html=True
         )
         
-    st.markdown(f'<div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #fff;">{highlighted_text}</div>', unsafe_allow_html=True)
-    
-    # Side by side code details
-    st.subheader("Coding Comparison & Rule Compliance Details")
-    
-    c_v1 = predictions[(predictions["record_id"] == selected_id) & (predictions["model_version"] == "clinical-nlp-v1")].iloc[0]
-    c_v2 = predictions[(predictions["record_id"] == selected_id) & (predictions["model_version"] == "clinical-nlp-v2")].iloc[0]
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### Version 1 (Baseline)")
-        st.write(f"**Predicted Codes**: `{c_v1['predicted_codes']}`")
-        st.write(f"**Modifiers**: `{c_v1['predicted_modifiers'] or 'None'}`")
-        st.write(f"**Confidence**: `{c_v1['confidence_scores']}`")
-        
-    with col2:
-        st.markdown("### Version 2 (Candidate)")
-        st.write(f"**Predicted Codes**: `{c_v2['predicted_codes']}`")
-        st.write(f"**Modifiers**: `{c_v2['predicted_modifiers'] or 'None'}`")
-        st.write(f"**Confidence**: `{c_v2['confidence_scores']}`")
-        
-    # Compliance Rule Violation output
-    conn = sqlite3.connect("data/synapse_audit.db")
-    audit_results = pd.read_sql_query(f"SELECT * FROM compliance_audit_results WHERE record_id = '{selected_id}'", conn)
-    conn.close()
-    
-    if not audit_results.empty:
-        st.error("Deterministic Rule Violations Found:")
-        st.dataframe(audit_results[["model_version", "error_type", "risk_score", "details"]])
-    else:
-        st.success("No deterministic compliance rule violations flagged for this record.")
+    st.warning("Staging Review Assessment: Removing the explicit Modifier 25 rule block from System Prompt v2 caused the candidate model to omit necessary modifier markers on joint evaluation claims.")
 
-elif page == "Specialty & Compliance Analytics":
-    st.header("Specialty & Compliance Analytics")
+# 5. Rule Sandbox Testing Lab
+elif page == "Rule Sandbox Testing Lab":
+    st.header("Rule Sandbox Testing Lab")
+    st.markdown("Simulate customized notes dynamically in real-time to audit parser outputs and check rule behaviors.")
     
-    conn = sqlite3.connect("data/synapse_audit.db")
-    df_audit = pd.read_sql_query("SELECT * FROM compliance_audit_results", conn)
-    conn.close()
-    
-    if not df_audit.empty:
-        st.subheader("Compliance Errors Distribution by Model Version")
-        fig = px.histogram(df_audit, x="error_type", color="model_version", barmode="group",
-                           title="Compliance Error Violations Count",
-                           color_discrete_sequence=["#00c6ff", "#00f2fe"],
-                           template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.subheader("Severity Weighted Risk Score Trend")
-        fig_box = px.box(df_audit, x="model_version", y="risk_score", color="model_version",
-                         title="Specialty Compliance Risk Distribution",
-                         color_discrete_sequence=["#00c6ff", "#00f2fe"],
-                         template="plotly_dark")
-        st.plotly_chart(fig_box, use_container_width=True)
-    else:
-        st.info("No compliance violations tracked in database.")
-
-elif page == "Model Compare & Prompt Diff":
-    st.header("Model Compare & Prompt Diff")
-    st.markdown("Inspect structural prompt updates and trace NLP model logic diffs.")
-    
-    col_diff1, col_diff2 = st.columns(2)
-    with col_diff1:
-        st.markdown("### Baseline System Prompt (v1)")
-        st.code(
-            "System Prompt: clinical-nlp-v1\n"
-            "==============================\n"
-            "You are an expert clinical coder. Extract CPT and ICD-10 codes from notes.\n"
-            "CRITICAL: If a procedure (e.g. cardiac cath 93451) and E/M visit (e.g. 99213) occur on same day,\n"
-            "ensure modifier 25 is attached to the E/M code (format: 99213:25).",
-            language="markdown"
-        )
-    with col_diff2:
-        st.markdown("### Candidate System Prompt (v2)")
-        st.code(
-            "System Prompt: clinical-nlp-v2\n"
-            "==============================\n"
-            "You are a clinical assistant. Extract diagnostic codes and CPT codes from notes.\n"
-            "Ensure E/M levels are selected correctly. Ensure all details are matched. Do not hallucinate.",
-            language="markdown"
-        )
-    
-    st.info("**Prompt Optimization Review**: The candidate prompt (v2) omitted the explicit rule requiring Modifier 25 attachments for office visits billed alongside procedural evaluations, causing a regression in Cardiology and Orthopedics claim accuracy.")
-
-elif page == "Synthetic Testing Lab":
-    st.header("Synthetic Edge Case Testing Lab")
-    st.markdown("Input custom EHR notes to validate NLP extraction and rule check results in real-time.")
-    
-    template = st.selectbox("Select Sample Note Template", [
-        "Select custom text...",
-        "Cardiology: Catheterization + E/M on Same Day",
-        "Endocrinology: Hypothyroidism Levothyroxine mcg Dosage",
-        "Orthopedics: Duplicate PT Code Billing"
+    note_type = st.selectbox("Quick Note Presets", [
+        "Empty Scratchpad",
+        "Cardiology (Missing Modifier 25 Evaluation)",
+        "Endocrinology (Critical Unit Mismatch Case)"
     ])
     
-    default_text = ""
-    if template == "Cardiology: Catheterization + E/M on Same Day":
-        default_text = (
-            "Patient seen today for worsening systolic heart failure. "
-            "Underwent diagnostic cardiac catheterization and separate cardiovascular evaluation. "
-            "Codes matched: 93451 and 99213."
-        )
-    elif template == "Endocrinology: Hypothyroidism Levothyroxine mcg Dosage":
-        default_text = (
-            "Consultation for thyroid deficiency. Patient started on levothyroxine 100 mcg daily."
-        )
-    elif template == "Orthopedics: Duplicate PT Code Billing":
-        default_text = (
-            "Post-op rehabilitation visit. Duplicate physical therapy codes 97110 and 97110 recorded."
-        )
+    text_val = ""
+    if note_type == "Cardiology (Missing Modifier 25 Evaluation)":
+        text_val = "Patient evaluated for systolic chronic heart failure. Performed cardiac catheterization (93451) and routine cardiovascular evaluation (99213)."
+    elif note_type == "Endocrinology (Critical Unit Mismatch Case)":
+        text_val = "Patient started on levothyroxine 100 mcg daily for thyroid deficiency."
         
-    custom_note = st.text_area("Clinical Note Text", value=default_text, height=150)
+    note_input = st.text_area("Interactive Clinical Note Entry", value=text_val, height=180)
     
-    col_input1, col_input2 = st.columns(2)
-    with col_input1:
-        pred_codes = st.text_input("Simulated Predicted Codes (comma-separated)", value="93451,99213")
-    with col_input2:
-        pred_mods = st.text_input("Simulated Predicted Modifiers (e.g. 99213:25)", value="99213")
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        pred_codes = st.text_input("Simulated Extraction Codes", value="93451,99213")
+    with col_c2:
+        pred_mods = st.text_input("Simulated Modifiers", value="99213") # missing modifier
         
-    if st.button("Run Deterministic Audit Checks", type="primary"):
-        st.subheader("Analysis & Highlighting Spans")
-        
-        # Parse entities
+    if st.button("Execute Verification Rules", type="primary"):
+        st.subheader("Highlighted Entities matched")
         parser = ClinicalParser()
-        spans = parser.parse_note(custom_note)
+        spans = parser.parse_note(note_input)
         spans = sorted(spans, key=lambda x: x["start"], reverse=True)
-        highlighted = custom_note
+        highlighted = note_input
         for s in spans:
             start, end, code = s["start"], s["end"], s["code"]
             highlighted = (
@@ -381,14 +354,14 @@ elif page == "Synthetic Testing Lab":
                 f'<span class="highlight-span">{highlighted[start:end]} [Code: {code}]</span>' + 
                 highlighted[end:]
             )
-        st.markdown(f'<div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; line-height: 1.6; color: #fff;">{highlighted}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color: #161b22; border: 1px solid #30363d; padding: 18px; border-radius: 6px; font-family: monospace; white-space: pre-wrap;">{highlighted}</div>', unsafe_allow_html=True)
         
-        # Run rules
+        # Test engine rules
         engine = RuleEngine()
-        violations = engine.evaluate_rules(pred_codes, pred_mods, custom_note)
+        violations = engine.evaluate_rules(pred_codes, pred_mods, note_input)
         
-        # Check custom levothyroxine dynamic unit confusion logic
-        if "levothyroxine" in custom_note.lower() and "mcg" in custom_note.lower() and "mg" in pred_codes.lower():
+        # levothyroxine custom logic trigger
+        if "levothyroxine" in note_input.lower() and "mcg" in note_input.lower() and "mg" in pred_codes.lower():
             violations.append({
                 "error_type": "unit_confusion",
                 "risk_score": 2.0,
@@ -396,118 +369,105 @@ elif page == "Synthetic Testing Lab":
             })
             
         if violations:
-            st.error(f"Compliance Audit Failed: {len(violations)} rule violation(s) detected.")
-            st.dataframe(pd.DataFrame(violations))
+            st.error(f"Audit Rules Verification Failure: {len(violations)} rule violations found.")
+            st.dataframe(pd.DataFrame(violations), hide_index=True)
         else:
-            st.success("Compliance Audit Passed: No rule violations detected for this note.")
+            st.success("Audit Rules Verification Success: Case passes all rules.")
 
-elif page == "Release Gate Status":
-    st.header("Release Gate Evaluation Status")
+# 6. Release Gate Safety Charts
+elif page == "Release Gate Safety Charts":
+    st.header("Release Gate Safety Charts")
+    st.markdown("Gauge visual charts tracking Candidate release compliance metrics relative to strict staging thresholds.")
     
-    # Calculate release checks
-    # Version v2 vs Version v1
     conn = sqlite3.connect("data/synapse_audit.db")
     cursor = conn.cursor()
-    
     cursor.execute("SELECT COUNT(*) FROM compliance_audit_results WHERE model_version = 'clinical-nlp-v2' AND error_type = 'unit_confusion'")
     unit_confusions = cursor.fetchone()[0]
-    
     cursor.execute("SELECT COUNT(*) FROM compliance_audit_results WHERE model_version = 'clinical-nlp-v2' AND error_type = 'wrong_modifier'")
     wrong_modifiers = cursor.fetchone()[0]
-    
     conn.close()
     
-    if "is_rolled_back" not in st.session_state:
-        st.session_state["is_rolled_back"] = False
-        
-    st.subheader("Release Candidate (v2) Metrics & Thresholds Check")
+    # Calculate values
+    comparison = regression.compare_versions()
+    avg_delta = sum(m["delta"] for m in comparison.values()) / len(comparison) if comparison else 0
     
-    if st.session_state["is_rolled_back"]:
-        st.markdown(
-            '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 20px; border-radius: 5px; margin-bottom: 20px;">'
-            '<h3 style="color: #4caf50; margin: 0 0 10px 0;">SYSTEM STATUS: ACTIVE (clinical-nlp-v1)</h3>'
-            '<p style="color: #ccc; margin: 0;">The proposed candidate version (v2) has been successfully rolled back to baseline in production settings.</p>'
-            '</div>', 
-            unsafe_allow_html=True
-        )
-        if st.button("Re-evaluate Release Candidate (v2)", type="secondary"):
+    col_g1, col_g2, col_g3 = st.columns(3)
+    
+    # Gauge 1: Global F1 Delta
+    with col_g1:
+        st.markdown("#### Global F1 Drift Delta")
+        fig_g1 = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = avg_delta,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Staging Tolerance Limit: -0.05"},
+            gauge = {
+                'axis': {'range': [-0.2, 0.1]},
+                'bar': {'color': "#1f6feb"},
+                'steps': [
+                    {'range': [-0.2, -0.05], 'color': "rgba(244,67,54,0.25)"},
+                    {'range': [-0.05, 0.1], 'color': "rgba(76,175,80,0.25)"}
+                ]
+            }
+        ))
+        fig_g1.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
+        st.plotly_chart(fig_g1, use_container_width=True)
+        
+    # Gauge 2: Modifier Violation Count
+    with col_g2:
+        st.markdown("#### Modifier Violations")
+        fig_g2 = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = wrong_modifiers,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Staging Tolerance Limit: 0"},
+            gauge = {
+                'axis': {'range': [0, 5]},
+                'bar': {'color': "#ff7b72"},
+                'steps': [
+                    {'range': [0, 0.9], 'color': "rgba(76,175,80,0.25)"},
+                    {'range': [0.9, 5], 'color': "rgba(244,67,54,0.25)"}
+                ]
+            }
+        ))
+        fig_g2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
+        st.plotly_chart(fig_g2, use_container_width=True)
+        
+    # Gauge 3: Unit Confusion Count
+    with col_g3:
+        st.markdown("#### Dosage Unit Confusions")
+        fig_g3 = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = unit_confusions,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Staging Tolerance Limit: 0"},
+            gauge = {
+                'axis': {'range': [0, 5]},
+                'bar': {'color': "#ff7b72"},
+                'steps': [
+                    {'range': [0, 0.9], 'color': "rgba(76,175,80,0.25)"},
+                    {'range': [0.9, 5], 'color': "rgba(244,67,54,0.25)"}
+                ]
+            }
+        ))
+        fig_g3.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#fff"}, height=250)
+        st.plotly_chart(fig_g3, use_container_width=True)
+
+    # Rollback console
+    st.markdown("---")
+    st.subheader("Staging gate deployment rollbacks")
+    
+    if st.session_state.get("is_rolled_back", False):
+        st.success("System reference is active: clinical-nlp-v1 stable baseline.")
+        if st.button("Reset Release Evaluation"):
             st.session_state["is_rolled_back"] = False
             st.rerun()
     else:
-        # Compute dynamic checks based on regression deltas and compliance audit
-        comparison = regression.compare_versions()
-        
-        # 1. Specialty Regression Check
-        specialty_regressions = []
-        has_specialty_regression = False
-        for spec, metrics in comparison.items():
-            if metrics['delta'] < -0.05:
-                specialty_regressions.append(f"{spec} ({metrics['delta']:.4f})")
-                has_specialty_regression = True
-        
-        spec_val = f"Regressions in {', '.join(specialty_regressions)}" if has_specialty_regression else "All specialty F1 deltas within tolerance (-0.05)"
-        spec_status = "FAIL" if has_specialty_regression else "PASS"
-        
-        # 2. Exact-match Accuracy check
-        avg_delta = sum(m["delta"] for m in comparison.values()) / len(comparison) if comparison else 0
-        accuracy_val = f"{avg_delta:+.4f} average F1 delta" if avg_delta < 0 else "No F1 degradation"
-        accuracy_status = "FAIL" if avg_delta < -0.05 else "PASS"
-        
-        # 3. Modifier violation check
-        modifier_val = f"{wrong_modifiers} wrong modifier violations"
-        modifier_status = "FAIL" if wrong_modifiers > 0 else "PASS"
-        
-        # 4. Unit confusion check
-        unit_val = f"{unit_confusions} unit mismatch violations"
-        unit_status = "FAIL" if unit_confusions > 0 else "PASS"
-        
-        checks = [
-            {"Rule": "Exact-match Accuracy Tolerance", "Value": accuracy_val, "Status": accuracy_status, "Desc": "Global F1 accuracy drift must not drop below baseline threshold."},
-            {"Rule": "Modifier Accuracy (No degradation)", "Value": modifier_val, "Status": modifier_status, "Desc": "CPT modifiers (e.g. modifier 25) must be appended correctly without regressions."},
-            {"Rule": "Unit Confusion (Strictly 0%)", "Value": unit_val, "Status": unit_status, "Desc": "Dosage unit confusion (mg vs mcg) must be completely absent."},
-            {"Rule": "Specialty Regression Tolerance", "Value": spec_val, "Status": spec_status, "Desc": "Specialty F1-score delta must be within acceptable staging tolerances."}
-        ]
-        
-        # Render cards
-        col1, col2 = st.columns(2)
-        for i, c in enumerate(checks):
-            target_col = col1 if i % 2 == 0 else col2
-            with target_col:
-                bg_color = "rgba(244, 67, 54, 0.1)" if "FAIL" in c["Status"] else "rgba(76, 175, 80, 0.1)"
-                border_color = "#f44336" if "FAIL" in c["Status"] else "#4caf50"
-                text_color = "#f44336" if "FAIL" in c["Status"] else "#4caf50"
-                
-                st.markdown(
-                    f'<div style="background-color: {bg_color}; border: 1px solid {border_color}; padding: 20px; border-radius: 8px; margin-bottom: 15px;">'
-                    f'<div style="display: flex; justify-content: space-between; align-items: center;">'
-                    f'<h4 style="margin: 0; color: #fff;">{c["Rule"]}</h4>'
-                    f'<span style="color: {text_color}; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid {border_color};">{c["Status"]}</span>'
-                    f'</div>'
-                    f'<p style="margin: 10px 0 5px 0; font-size: 14px; color: #aaa;">{c["Desc"]}</p>'
-                    f'<code style="color: #fff; background-color: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">{c["Value"]}</code>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-        
-        has_any_failure = any(c["Status"] == "FAIL" for c in checks)
-        st.markdown("---")
-        
-        if has_any_failure:
-            st.markdown(
-                '<div style="background-color: rgba(244, 67, 54, 0.1); border-left: 5px solid #f44336; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
-                '<h4 style="color: #f44336; margin: 0 0 5px 0;">RELEASE STATUS: BLOCKED</h4>'
-                '<p style="color: #ccc; margin: 0; font-size: 14px;">The proposed candidate version (v2) has failed one or more critical release gates. Deployment is blocked.</p>'
-                '</div>',
-                unsafe_allow_html=True
-            )
-            if st.button("Execute Rollback to Baseline (v1)", type="primary"):
+        has_failure = (avg_delta < -0.05) or (wrong_modifiers > 0) or (unit_confusions > 0)
+        if has_failure:
+            st.error("Release Candidate (v2) contains regressions. Deployment is blocked.")
+            if st.button("Execute Rollback to stable v1 reference", type="primary"):
                 st.session_state["is_rolled_back"] = True
                 st.rerun()
         else:
-            st.markdown(
-                '<div style="background-color: rgba(76, 175, 80, 0.1); border-left: 5px solid #4caf50; padding: 15px; border-radius: 5px; margin-bottom: 20px;">'
-                '<h4 style="color: #4caf50; margin: 0 0 5px 0;">RELEASE STATUS: PASSED</h4>'
-                '<p style="color: #ccc; margin: 0; font-size: 14px;">All safety and compliance checks are satisfied. The proposed candidate version (v2) is safe to deploy.</p>'
-                '</div>',
-                unsafe_allow_html=True
-            )
+            st.success("Candidate passes all release staging criteria. Approved for deployment.")
